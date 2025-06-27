@@ -1,6 +1,6 @@
-# dotget
+# `dotget`: Simple, Exact Addressing
 
-**Simple paths for nested data. Nothing more.**
+**Get a value from a nested data structure. Nothing more.**
 
 ```python
 >>> from dotget import get
@@ -9,15 +9,17 @@
 'Alice'
 ```
 
-That's it. That's the library.
+## The Philosophy: Do One Thing Well
 
-## Why?
+In the Unix tradition, `dotget` does one thing: get a value from a specific, known location. It doesn't validate, transform, or query. Its goal isn't to be powerful—it's to be **obvious**.
 
-Because sometimes you just need to get `data["users"][0]["name"]` without all the ceremony.
+It is the foundation of the `dot` ecosystem's **Addressing Layer**:
 
-Because sometimes you don't want to `pip install` another 50 dependencies.
+*   **`dotget` provides exact addressing:** `users.0.name`
+*   `dotstar` builds on this with pattern addressing: `users.*.name`
+*   `dotquery` completes it with conditional addressing: `users[name=Alice]`
 
-Because sometimes the best code is the code you understand completely.
+`dotget` is for when you know exactly where you're going and need the most direct, reliable, and simple way to get there. It embodies the "Principle of Least Power": use the simplest possible tool for the job.
 
 ## Install
 
@@ -25,115 +27,81 @@ Because sometimes the best code is the code you understand completely.
 pip install dotget
 ```
 
-Or just copy the 20 lines of code you need. Seriously. This library is designed to be stolen.
+## Usage
 
-## The Simplest Thing That Could Work
+### As a Library
 
-```python
-from dotget import get
-
-data = {
-    "user": {
-        "name": "Alice",
-        "contacts": [
-            {"type": "email", "value": "alice@example.com"},
-            {"type": "phone", "value": "555-1234"}
-        ]
-    }
-}
-
-# Get nested values
-name = get(data, "user.name")                      # "Alice"
-email = get(data, "user.contacts.0.value")         # "alice@example.com"
-
-# With defaults
-city = get(data, "user.address.city", "Unknown")   # "Unknown"
-
-# Check existence  
-from dotget import exists
-if exists(data, "user.contacts"):
-    print("User has contacts")
-```
-
-## The Zen of dotget
-
-- **Flat is better than nested** - but sometimes data is nested
-- **Simple is better than complex** - this is just dots and integers
-- **Readability counts** - `user.name` is obvious
-- **Practicality beats purity** - copy this code if you want
-- **There should be one obvious way** - dots traverse, numbers index
-
-## When to use dotget
-
-✅ You have nested data from an API  
-✅ You're writing a quick script  
-✅ You need to access config values  
-✅ You're tired of writing `try`/`except` for nested access  
-
-## When NOT to use dotget
-
-❌ You need wildcards or pattern matching (wait for `dotstar`)  
-❌ You need to modify data (this is for reading)  
-❌ You need type validation (use Pydantic)  
-❌ You need SQL-like queries (use JMESPath)  
-
-## Path Objects (if you need them)
-
-For slightly more complex use cases:
+`dotget` provides two functions: `get` and `exists`.
 
 ```python
-from dotget import Path
+from dotget import get, exists
 
-# Compose paths
-users = Path("users")
-first_user = users / "0"
-user_name = first_user / "name"
+data = {"user": {"contacts": [{"type": "email", "value": "alice@example.com"}]}}
 
-# Use paths
-name = user_name.get(data)
+# Get a value using a dot-separated path
+email = get(data, "user.contacts.0.value")
+# -> "alice@example.com"
 
-# Reuse paths
-USER_EMAIL = Path("user.contact.email")
-email = USER_EMAIL.get(data)
+# Return a default value if the path is invalid
+city = get(data, "user.address.city", "Unknown")
+# -> "Unknown"
+
+# Check if a path is valid
+if exists(data, "user.contacts.1"):
+    print("User has a second contact.")
+# -> (no output)
 ```
 
-## Steal This Code
+### From the Command Line
 
-Don't want a dependency? Copy this:
+`dotget` also includes a simple CLI for shell scripting.
+
+```sh
+# Extract the version from a package.json file
+$ cat package.json | dotget version
+"1.2.3"
+
+# Use it in a script to read from a file
+$ VERSION=$(dotget package.json version)
+$ echo "Building version $VERSION..."
+```
+
+## Boundaries: When to Use `dotget`
+
+Use `dotget` when you need to:
+✅ Access data from an API response.
+✅ Write a quick, reliable script.
+✅ Read from a configuration object.
+✅ Avoid writing `try/except KeyError/IndexError` chains.
+
+Do **not** use `dotget` when you need to:
+❌ Use wildcards (`*` or `**`). **Use `dotstar` or `dotpath`**.
+❌ Find an item based on its value (`[key=value]`). **Use `dotpath`**.
+❌ Modify data. **Use `dotmod`**.
+❌ Transform data into a new shape. **Use `dotpipe`**.
+
+## "Steal This Code"
+
+Don't want a dependency? The core of this library is one function. Copy it.
 
 ```python
 def get(data, path, default=None):
+    """Gets a value from nested data using a dot-separated path."""
     try:
         for segment in path.split('.'):
-            data = data[int(segment)] if segment.isdigit() else data[segment]
+            if isinstance(data, list) and segment.isdigit():
+                data = data[int(segment)]
+            elif isinstance(data, dict):
+                data = data[segment]
+            else:
+                return default
         return data
     except (KeyError, IndexError, TypeError, AttributeError):
         return default
 ```
 
-That's it. That's 90% of the library.
-
-## Philosophy
-
-In the Unix tradition, this tool does one thing: navigate to a specific location in nested data. It doesn't validate, transform, or query. It just gets values.
-
-The goal isn't to be powerful - it's to be obvious. When you see `get(data, "user.name")`, you know exactly what it does. No documentation needed.
-
-## Prior Art
-
-This isn't a new idea. It's been reinvented many times because it's useful:
-
-- [dpath](https://github.com/akesterson/dpath-python) - wildcards and searching
-- [dotty-dict](https://github.com/pawelzny/dotty_dict) - dict wrapper with dot access  
-- [jmespath](https://jmespath.org/) - full query language
-- Every project that has a `get_nested()` utility
-
-`dotget` is the minimal version. One function, one syntax, one purpose.
-
 ## License
 
 MIT. Do whatever you want with this code.
 
----
-
-*"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."* - Antoine de Saint-Exupéry
+> "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry
