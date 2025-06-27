@@ -1,6 +1,10 @@
 # `dotget`: Simple, Exact Addressing
 
-**Get a value from a nested data structure. Nothing more.**
+> "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."
+>
+> — Antoine de Saint-Exupéry
+
+**Get a value from a nested data structure using a precise path. Nothing more.**
 
 ```python
 >>> from dotget import get
@@ -13,13 +17,13 @@
 
 In the Unix tradition, `dotget` does one thing: get a value from a specific, known location. It doesn't validate, transform, or query. Its goal isn't to be powerful—it's to be **obvious**.
 
-It is the foundation of the `dot` ecosystem's **Addressing Layer**:
+It is the foundation of the `dot` ecosystem's **Addressing Pillar**, representing the first and simplest layer:
 
-*   **`dotget` provides exact addressing:** `users.0.name`
-*   `dotstar` builds on this with pattern addressing: `users.*.name`
-*   `dotquery` completes it with conditional addressing: `users[name=Alice]`
+1.  **`dotget` (Exact Addressing):** For when you know the *exact* path to a value (e.g., `users.0.name`). It is the simplest tool for the job.
+2.  **`dotstar` (Pattern Addressing):** For when you need to gather all items that match a simple wildcard pattern (e.g., `users.*.name`).
+3.  **`dotselect` (Advanced Selection):** For when you need more complex queries, including attribute checks, deep searches, and custom logic, powered by the `dotpath` engine.
 
-`dotget` is for when you know exactly where you're going and need the most direct, reliable, and simple way to get there. It embodies the "Principle of Least Power": use the simplest possible tool for the job.
+`dotget` is for when you know exactly where you're going and need the most direct, reliable, and simple way to get there. It embodies the "Principle of Least Power."
 
 ## Install
 
@@ -31,10 +35,10 @@ pip install dotget
 
 ### As a Library
 
-`dotget` provides two functions: `get` and `exists`.
+`dotget` provides a single function: `get`.
 
 ```python
-from dotget import get, exists
+from dotget import get
 
 data = {"user": {"contacts": [{"type": "email", "value": "alice@example.com"}]}}
 
@@ -42,14 +46,9 @@ data = {"user": {"contacts": [{"type": "email", "value": "alice@example.com"}]}}
 email = get(data, "user.contacts.0.value")
 # -> "alice@example.com"
 
-# Return a default value if the path is invalid
-city = get(data, "user.address.city", "Unknown")
-# -> "Unknown"
-
-# Check if a path is valid
-if exists(data, "user.contacts.1"):
-    print("User has a second contact.")
-# -> (no output)
+# Returns None if the path is invalid
+city = get(data, "user.address.city")
+# -> None
 ```
 
 ### From the Command Line
@@ -69,20 +68,20 @@ $ echo "Building version $VERSION..."
 ## Boundaries: When to Use `dotget`
 
 Use `dotget` when you need to:
-✅ Access data from an API response.
-✅ Write a quick, reliable script.
+✅ Access data from a known, fixed path in an API response.
+✅ Write a quick, reliable script that depends on a stable data structure.
 ✅ Read from a configuration object.
-✅ Avoid writing `try/except KeyError/IndexError` chains.
+✅ Avoid writing `try/except KeyError/IndexError` chains for simple lookups.
 
 Do **not** use `dotget` when you need to:
-❌ Use wildcards (`*` or `**`). **Use `dotstar` or `dotpath`**.
-❌ Find an item based on its value (`[key=value]`). **Use `dotpath`**.
+❌ Use wildcards (`*` or `**`). **Use `dotstar` or `dotselect`**.
+❌ Find an item based on its value (`[key=value]`). **Use `dotselect`**.
 ❌ Modify data. **Use `dotmod`**.
 ❌ Transform data into a new shape. **Use `dotpipe`**.
 
 ## "Steal This Code"
 
-Don't want a dependency? The core of this library is one function. Copy it.
+Don't want a dependency? The core of this library is simple. Copy it.
 
 ```python
 def get(data, path, default=None):
@@ -96,12 +95,7 @@ def get(data, path, default=None):
             else:
                 return default
         return data
-    except (KeyError, IndexError, TypeError, AttributeError):
+    except (KeyError, IndexError, TypeError):
         return default
 ```
 
-## License
-
-MIT. Do whatever you want with this code.
-
-> "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry
